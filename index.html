@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="icons8-map-pinpoint-64.png">
+    <title>Live Distance Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f0f8ff;
+            color: #333;
+            text-align: center;
+        }
+
+        h1 {
+            color: #0056b3;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        button:hover:enabled {
+            background-color: #0056b3;
+        }
+
+        p {
+            font-size: 18px;
+        }
+
+        #output {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            display: inline-block;
+            text-align: left;
+        }
+
+        .location {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Live Distance Tracker</h1>
+<p>Click the button to start or stop tracking your movement:</p>
+<button id="startButton" onclick="startTracking()">Start Tracking</button>
+<button id="stopButton" onclick="stopTracking()" disabled>Stop Tracking</button>
+<p id="status">Tracking not started...</p>
+<div id="output"></div>
+
+<script>
+    let tracking = false;
+    let previousLocation = null;
+    let totalDistance = 0;
+    let intervalId = null;
+
+    const statusElement = document.getElementById("status");
+    const outputElement = document.getElementById("output");
+    const startButton = document.getElementById("startButton");
+    const stopButton = document.getElementById("stopButton");
+
+    function startTracking() {
+        if (navigator.geolocation) {
+            tracking = true;
+            statusElement.innerHTML = "Tracking started...";
+            totalDistance = 0;
+            previousLocation = null;
+
+            startButton.disabled = true;
+            stopButton.disabled = false;
+
+            intervalId = setInterval(() => {
+                navigator.geolocation.getCurrentPosition(
+                    updatePosition,
+                    showError,
+                    { enableHighAccuracy: true, maximumAge: 0}
+                );
+            }, 1000); // Call geolocation every 2 seconds
+        } else {
+            statusElement.innerHTML = "Geolocation is not supported by this browser.";
+        }
+    }
+
+    function stopTracking() {
+        if (tracking) {
+            clearInterval(intervalId);
+            intervalId = null;
+            tracking = false;
+            statusElement.innerHTML = "Tracking stopped.";
+
+            startButton.disabled = false;
+            stopButton.disabled = true;
+        }
+    }
+
+    function updatePosition(position) {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+
+        if (previousLocation) {
+            const distance = calculateDistance(
+                previousLocation.latitude,
+                previousLocation.longitude,
+                latitude,
+                longitude
+            );
+            
+            if(distance > 0.001){
+                totalDistance += distance;
+                console.log(totalDistance);
+                console.log(`latitude = ${latitude}`);
+                console.log(`longitude = ${longitude}`);
+            }
+            
+        }
+
+        previousLocation = { latitude, longitude };
+
+        statusElement.innerHTML = `Current Location:<br>
+                                   Latitude: ${latitude.toFixed(16)}<br> Longitude: ${longitude.toFixed(16)}`;
+
+        outputElement.innerHTML = `<strong>Total Distance:</strong> ${totalDistance.toFixed(10)} km`;
+    }
+
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Radius of the Earth in km
+        const dLat = degToRad(lat2 - lat1);
+        const dLon = degToRad(lon2 - lon1);
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(degToRad(lat1)) * Math.cos(degToRad(lat2)) *
+                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c; // Distance in km
+    }
+
+    function degToRad(deg) {
+        return deg * (Math.PI / 180);
+    }
+
+    function showError(error) {
+        let errorMessage = "";
+        switch (error.code) {
+            case error.PERMISSION_DENIED:
+                errorMessage = "User denied the request for Geolocation.";
+                break;
+            case error.POSITION_UNAVAILABLE:
+                errorMessage = "Location information is unavailable.";
+                break;
+            case error.TIMEOUT:
+                errorMessage = "The request to get user location timed out.";
+                break;
+            case error.UNKNOWN_ERROR:
+                errorMessage = "An unknown error occurred.";
+                break;
+        }
+        statusElement.innerHTML = `<strong>Error:</strong> ${errorMessage}`;
+        if (intervalId !== null) {
+            clearInterval(intervalId);
+            intervalId = null;
+        }
+    }
+</script>
+
+</body>
+</html>

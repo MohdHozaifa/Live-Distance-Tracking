@@ -94,7 +94,7 @@
                     showError,
                     { enableHighAccuracy: true, maximumAge: 0}
                 );
-            }, 2000); // Call geolocation every 2 seconds
+            }, 5000); // Call geolocation every 2 seconds
         } else {
             statusElement.innerHTML = "Geolocation is not supported by this browser.";
         }
@@ -124,7 +124,7 @@
                 longitude
             );
             
-            if(distance > 0.002){
+            if(distance > 0.005){
                 totalDistance += distance;
                 console.log(totalDistance);
                 console.log(`latitude = ${latitude}`);
